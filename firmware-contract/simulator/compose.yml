@@ -1,0 +1,28 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2.0.22
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8883:8883"
+    volumes:
+      - ./broker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./broker/acl:/mosquitto/config/acl:ro
+      - ./broker/.local:/mosquitto/local:rw
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+  simulator:
+    build:
+      context: ..
+      dockerfile: simulator/Dockerfile
+    profiles: ["simulator"]
+    restart: unless-stopped
+    environment:
+      MQTT_HOST: broker
+      MQTT_PORT: "8883"
+      MQTT_TLS_CA_CERT: /app/certs/ca.crt
+      MQTT_DEVICE_ID: ${MQTT_DEVICE_ID:?Set MQTT_DEVICE_ID in .env}
+      MQTT_DEVICE_PASSWORD: ${MQTT_DEVICE_PASSWORD:?Set MQTT_DEVICE_PASSWORD in .env}
+      SIMULATOR_SCENARIO: ${SIMULATOR_SCENARIO:-success}
+      SIMULATOR_FEEDBACK_DELAY_SECONDS: ${SIMULATOR_FEEDBACK_DELAY_SECONDS:-5}
+    depends_on:
+      broker:
+        condition: service_started

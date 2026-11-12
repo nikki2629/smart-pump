@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/command-ack.schema.json",
+  "title": "Command receipt acknowledgement",
+  "type": "object",
+  "allOf": [
+    { "$ref": "common-device-message.schema.json" },
+    {
+      "type": "object",
+      "required": ["command_id", "outcome"],
+      "properties": {
+        "command_id": { "type": "string", "format": "uuid" },
+        "outcome": { "enum": ["accepted", "rejected"] },
+        "reason_code": { "type": "string", "maxLength": 64 }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/command-result.schema.json",
+  "title": "Command execution result",
+  "type": "object",
+  "allOf": [
+    { "$ref": "common-device-message.schema.json" },
+    {
+      "type": "object",
+      "required": ["command_id", "outcome", "result_code"],
+      "properties": {
+        "command_id": { "type": "string", "format": "uuid" },
+        "outcome": { "enum": ["completed", "failed", "rejected"] },
+        "result_code": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

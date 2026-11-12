@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/device-status.schema.json",
+  "title": "Heartbeat and confirmed device status",
+  "type": "object",
+  "allOf": [
+    { "$ref": "common-device-message.schema.json" },
+    {
+      "type": "object",
+      "required": [
+        "uptime_s",
+        "firmware_version",
+        "motor_feedback",
+        "motor_feedback_source",
+        "motor_feedback_valid",
+        "last_command_id"
+      ],
+      "properties": {
+        "uptime_s": { "type": "integer", "minimum": 0 },
+        "firmware_version": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "motor_feedback": {
+          "enum": ["unknown", "running", "stopped", "fault"]
+        },
+        "motor_feedback_source": {
+          "enum": ["unknown", "auxiliary_contact", "phase_current"]
+        },
+        "motor_feedback_valid": { "type": "boolean" },
+        "last_command_id": { "type": ["string", "null"], "format": "uuid"         }
+      }
+    },
+    {
+      "if": { "properties": { "motor_feedback_valid": { "const": true } } },
+      "then": {
+        "properties": {
+          "motor_feedback": { "enum": ["running", "stopped", "fault"] },
+          "motor_feedback_source": {
+            "enum": ["auxiliary_contact", "phase_current"]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "motor_feedback": { "const": "unknown" },
+          "motor_feedback_source": { "const": "unknown" }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

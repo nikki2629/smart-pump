@@ -1,0 +1,14 @@
+user backend-service
+topic write smart-pump/v1/devices/+/commands
+topic read smart-pump/v1/devices/+/command-acks
+topic read smart-pump/v1/devices/+/command-results
+topic read smart-pump/v1/devices/+/events
+topic read smart-pump/v1/devices/+/telemetry
+topic read smart-pump/v1/devices/+/status
+
+pattern read smart-pump/v1/devices/%u/commands
+pattern write smart-pump/v1/devices/%u/command-acks
+pattern write smart-pump/v1/devices/%u/command-results
+pattern write smart-pump/v1/devices/%u/events
+pattern write smart-pump/v1/devices/%u/telemetry
+pattern write smart-pump/v1/devices/%u/status

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/telemetry.schema.json",
+  "title": "Three-phase pump telemetry",
+  "type": "object",
+  "allOf": [
+    { "$ref": "common-device-message.schema.json" },
+    {
+      "type": "object",
+      "required": ["metrics"],
+      "properties": {
+        "metrics": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "voltage_v": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0 },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "current_a": {
+              "type": "array",
+              "items": { "type": "number", "minimum": 0 },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "frequency_hz": { "type": "number", "minimum": 0, "maximum": 1000 },
+            "motor_temperature_c": {
+              "type": "number",
+              "minimum": -50,
+              "maximum": 300
+            },
+            "pressure_kpa": { "type": "number", "minimum": 0, "maximum": 100000 }
+          }
+        }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}

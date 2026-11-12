@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/command.schema.json",
+  "title": "Pump command",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "command_id",
+    "device_id",
+    "action",
+    "issued_at",
+    "expires_at"
+  ],
+  "properties": {
+    "protocol_version": { "const": 1 },
+    "command_id": { "type": "string", "format": "uuid" },
+    "device_id": { "type": "string", "format": "uuid" },
+    "action": { "enum": ["start", "stop"] },
+    "issued_at": { "type": "string", "format": "date-time" },
+    "expires_at": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,27 @@
+# Environment files
+.env
+.env.local
+*.env
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+.venv/
+venv/
+ENV/
+
+# Mobile / Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+
+# IDE
+.idea/
+.vscode/
+.claude/
+*.swp
+*.swo

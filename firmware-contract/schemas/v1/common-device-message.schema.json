@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/common-device-message.schema.json",
+  "title": "Common authenticated device message",
+  "type": "object",
+  "required": [
+    "protocol_version",
+    "message_id",
+    "device_id",
+    "sequence",
+    "occurred_at"
+  ],
+  "properties": {
+    "protocol_version": { "const": 1 },
+    "message_id": { "type": "string", "format": "uuid" },
+    "device_id": { "type": "string", "format": "uuid" },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807
+    },
+    "occurred_at": { "type": "string", "format": "date-time" }
+  }
+}

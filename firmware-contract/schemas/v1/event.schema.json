@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://smart-pump.invalid/schemas/v1/event.schema.json",
+  "title": "Device event or protection fault",
+  "type": "object",
+  "allOf": [
+    { "$ref": "common-device-message.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_type", "code", "severity", "message"],
+      "properties": {
+        "event_type": {
+          "enum": ["protection_fault", "phase_fault", "diagnostic"]
+        },
+        "code": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "severity": { "enum": ["info", "warning", "critical"] },
+        "message": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "command_id": { "type": ["string", "null"], "format": "uuid" }
+      }
+    }
+  ],
+  "unevaluatedProperties": false
+}
