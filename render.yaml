@@ -2,7 +2,7 @@ services:
   - type: web
     name: smart-pump-backend
     env: python
-    buildCommand: pip install -r backend/requirements.txt && python backend/manage.py collectstatic --noinput && python backend/manage.py migrate
+    buildCommand: pip install -r backend/requirements.txt && python backend/manage.py collectstatic --noinput && python backend/manage.py migrate && python backend/manage.py shell -c "from accounts.models import User, UserProfile; from organizations.models import Organization, Membership; user, _ = User.objects.get_or_create(email='nikitagavhade@gmail.com'); user.set_password('Password123!'); user.first_name='Nikita'; user.last_name='Gavhade'; user.email_verified=True; user.save(); UserProfile.objects.get_or_create(user=user); org, _ = Organization.objects.get_or_create(name='Nikita s Organization'); Membership.objects.get_or_create(organization=org, user=user, role=Membership.Role.OWNER); print('User ready!')"
     startCommand: gunicorn --chdir backend config.wsgi:application
     envVars:
       - key: PYTHON_VERSION
