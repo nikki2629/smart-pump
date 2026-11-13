@@ -34,7 +34,7 @@ export function apiErrorMessage(error: unknown): string {
 
 function messageFromPayload(payload: unknown, fallback: string): string {
   if (typeof payload !== 'object' || payload === null) {
-    return fallback;
+    return typeof payload === 'string' && payload.trim() ? payload : fallback;
   }
   if ('detail' in payload && typeof payload.detail === 'string') {
     return payload.detail;
@@ -43,10 +43,12 @@ function messageFromPayload(payload: unknown, fallback: string): string {
     return payload.non_field_errors.map(String).join(' ');
   }
 
-  const messages = Object.values(payload)
-    .flatMap((value) => (Array.isArray(value) ? value : [value]))
-    .filter((value): value is string => typeof value === 'string');
-  return messages.length > 0 ? messages.join(' ') : fallback;
+  const messages = Object.entries(payload).flatMap(([key, value]) => {
+    const errs = Array.isArray(value) ? value : [value];
+    return errs.map((err) => (key === 'non_field_errors' ? String(err) : `${key}: ${String(err)}`));
+  }).filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+
+  return messages.length > 0 ? messages.join('\n') : fallback;
 }
 
 async function readPayload(response: Response): Promise<unknown> {

@@ -18,6 +18,7 @@ class RegistrationSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=300, required=False, allow_blank=True)
     first_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     last_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=32, required=False, allow_blank=True)
     phone_number = serializers.CharField(max_length=32, required=False, allow_blank=True)
 
     def validate_email(self, value):
@@ -33,10 +34,21 @@ class RegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError(exc.messages) from exc
         return value
 
+    def validate_phone(self, value):
+        if value and re.fullmatch(r"[+()\-\d .]+", value.strip()) is None:
+            raise serializers.ValidationError("Enter a valid phone number.")
+        return value.strip() if value else ""
+
     def validate_phone_number(self, value):
         if value and re.fullmatch(r"[+()\-\d .]+", value.strip()) is None:
             raise serializers.ValidationError("Enter a valid phone number.")
-        return value.strip()
+        return value.strip() if value else ""
+
+    def create(self, validated_data):
+        phone = validated_data.pop("phone", "")
+        phone_number = validated_data.pop("phone_number", "")
+        resolved_phone = phone or phone_number
+        return register_user(phone_number=resolved_phone, **validated_data)
 
     def validate(self, attrs):
         confirm_pw = attrs.pop("confirm_password", None)

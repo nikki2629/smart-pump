@@ -225,6 +225,7 @@ export type RegistrationRequest = {
   full_name?: string;
   first_name?: string;
   last_name?: string;
+  phone?: string;
   phone_number?: string;
 };
 

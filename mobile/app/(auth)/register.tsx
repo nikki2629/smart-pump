@@ -20,7 +20,7 @@ const schema = z.object({
   first_name: z.string().max(150),
   last_name: z.string().max(150),
   email: z.string().email('Enter a valid email address.'),
-  phone_number: z.string().max(32),
+  phone: z.string().max(32),
   password: z
     .string()
     .min(6, 'Use at least 6 characters.')
@@ -36,7 +36,7 @@ export default function RegisterScreen() {
       first_name: '',
       last_name: '',
       email: '',
-      phone_number: '',
+      phone: '',
       password: '',
     },
   });
@@ -48,7 +48,7 @@ export default function RegisterScreen() {
         email: values.email.trim(),
         first_name: values.first_name.trim(),
         last_name: values.last_name.trim(),
-        phone_number: values.phone_number.trim(),
+        phone: values.phone.trim(),
       });
       router.push('/(auth)/verify');
     } catch (error) {
@@ -113,7 +113,7 @@ export default function RegisterScreen() {
         />
         <Controller
           control={control}
-          name="phone_number"
+          name="phone"
           render={({ field, fieldState }) => (
             <FormField
               label="Phone (optional)"
