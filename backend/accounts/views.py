@@ -44,9 +44,8 @@ class RegistrationView(generics.CreateAPIView):
                 status=status.HTTP_201_CREATED,
             )
         except Exception as exc:
-            import traceback
             return Response(
-                {"detail": f"Registration error: {str(exc)}", "trace": traceback.format_exc()},
+                {"detail": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
             import traceback
