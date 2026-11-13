@@ -31,7 +31,8 @@ class RegistrationView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             user = serializer.save()
             refresh = RefreshToken.for_user(user)
             return Response(
@@ -43,6 +44,11 @@ class RegistrationView(generics.CreateAPIView):
                 status=status.HTTP_201_CREATED,
             )
         except Exception as exc:
+            import traceback
+            return Response(
+                {"detail": f"Registration error: {str(exc)}", "trace": traceback.format_exc()},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
             import traceback
             return Response(
                 {"detail": f"Registration error: {str(exc)}", "trace": traceback.format_exc()},
