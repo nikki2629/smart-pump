@@ -64,9 +64,6 @@ class RegistrationSerializer(serializers.Serializer):
                 attrs["last_name"] = parts[1]
         return attrs
 
-    def create(self, validated_data):
-        return register_user(**validated_data)
-
 
 class EmailVerificationSerializer(serializers.Serializer):
     token = serializers.CharField(max_length=4096, trim_whitespace=False)
