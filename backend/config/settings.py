@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
+import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -88,29 +89,35 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
-DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").strip().lower()
-if DB_ENGINE == "sqlite":
+DATABASE_URL = os.getenv("DATABASE_URL")
+if DATABASE_URL:
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
-        }
-    }
-elif DB_ENGINE == "postgresql":
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME", "smart_pump"),
-            "USER": os.getenv("DB_USER", "smart_pump_app"),
-            "PASSWORD": os.getenv("DB_PASSWORD", ""),
-            "HOST": os.getenv("DB_HOST", "127.0.0.1"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-            "CONN_MAX_AGE": 60,
-            "OPTIONS": {"connect_timeout": 5},
-        }
+        "default": dj_database_url.config(default=DATABASE_URL, conn_max_age=60)
     }
 else:
-    raise ImproperlyConfigured("DB_ENGINE must be 'postgresql' or 'sqlite'.")
+    DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").strip().lower()
+    if DB_ENGINE == "sqlite":
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+            }
+        }
+    elif DB_ENGINE == "postgresql":
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": os.getenv("DB_NAME", "smart_pump"),
+                "USER": os.getenv("DB_USER", "smart_pump_app"),
+                "PASSWORD": os.getenv("DB_PASSWORD", ""),
+                "HOST": os.getenv("DB_HOST", "127.0.0.1"),
+                "PORT": os.getenv("DB_PORT", "5432"),
+                "CONN_MAX_AGE": 60,
+                "OPTIONS": {"connect_timeout": 5},
+            }
+        }
+    else:
+        raise ImproperlyConfigured("DB_ENGINE must be 'postgresql' or 'sqlite'.")
 
 AUTH_USER_MODEL = "accounts.User"
 AUTH_PASSWORD_VALIDATORS = [

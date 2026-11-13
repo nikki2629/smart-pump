@@ -9,3 +9,4 @@ paho-mqtt==2.1.0
 jsonschema==4.26.0
 gunicorn==23.0.0
 whitenoise==6.9.0
+dj-database-url==2.3.0
