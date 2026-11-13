@@ -1,10 +1,17 @@
+import os
+import json
+import urllib.request
+import urllib.error
+import logging
+import secrets
+
 from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core import signing
-from django.core.mail import send_mail
 from django.db import transaction
+from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework.exceptions import ValidationError
@@ -16,12 +23,69 @@ from rest_framework_simplejwt.token_blacklist.models import (
     OutstandingToken,
 )
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 EMAIL_VERIFICATION_SALT = "accounts.email-verification.v1"
 
 
-import secrets
-from django.utils import timezone
+def send_transactional_email(*, subject, message, recipient_list):
+    api_key = getattr(settings, "RESEND_API_KEY", "") or os.getenv("RESEND_API_KEY", "")
+    from_email = (
+        getattr(settings, "RESEND_FROM_EMAIL", "")
+        or os.getenv("RESEND_FROM_EMAIL", "")
+        or getattr(settings, "DEFAULT_FROM_EMAIL", "onboarding@resend.dev")
+    )
+
+    if getattr(settings, "EMAIL_BACKEND", "").endswith("locmem.EmailBackend") or getattr(settings, "EMAIL_BACKEND", "").endswith("console.EmailBackend"):
+        from django.core.mail import send_mail
+        send_mail(
+            subject,
+            message,
+            from_email,
+            recipient_list,
+            fail_silently=False,
+        )
+        return
+
+    if not api_key:
+        logger.error("RESEND_API_KEY environment variable is missing. Blocked SMTP fallback to prevent Gunicorn worker timeout.")
+        raise ValidationError({"email": ["Email delivery failed: RESEND_API_KEY environment variable is not configured on server."]})
+
+    url = "https://api.resend.com/emails"
+    payload = {
+        "from": from_email,
+        "to": recipient_list,
+        "subject": subject,
+        "text": message,
+    }
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=5) as response:
+            if response.status not in (200, 201):
+                logger.error(f"Resend API returned status {response.status}")
+                raise ValidationError({"email": ["Failed to send email via Resend API."]})
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode("utf-8", errors="ignore")
+        logger.error(f"Resend API HTTPError {e.code}: {error_body}")
+        raise ValidationError({"email": ["Failed to send email via transactional email API."]})
+    except urllib.error.URLError as e:
+        logger.error(f"Resend API network timeout or error: {e}")
+        raise ValidationError({"email": ["Failed to send email due to network connection timeout."]})
+    except ValidationError:
+        raise
+    except Exception as e:
+        logger.error(f"Email delivery exception: {e}")
+        raise ValidationError({"email": ["Failed to send email. Please check server network configuration."]})
+
 
 def generate_6digit_otp(user):
     otp = f"{secrets.randbelow(1000000):06d}"
@@ -33,7 +97,7 @@ def generate_6digit_otp(user):
 
 
 @transaction.atomic
-def register_user(*, email, password, first_name="", last_name="", phone_number="", email_verified=True):
+def register_user(*, email, password, first_name="", last_name="", phone_number="", email_verified=False):
     user = User.objects.create_user(
         email=email,
         password=password,
@@ -63,16 +127,16 @@ def register_user(*, email, password, first_name="", last_name="", phone_number=
         pass
 
     otp = generate_6digit_otp(user)
-    try:
-        send_mail(
-            f"Your Pump Connector Verification Code: {otp}",
-            f"Hello {user.first_name or 'User'},\n\nYour 6-digit Pump Connector verification code is: {otp}\n\nEnter this 6-digit code in the app to complete verification.\n\nRegards,\nPump Connector Automation Team",
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    send_transactional_email(
+        subject=f"Your Pump Connector Verification Code: {otp}",
+        message=(
+            f"Hello {user.first_name or 'User'},\n\n"
+            f"Your 6-digit Pump Connector verification code is: {otp}\n\n"
+            "Enter this 6-digit code in the app to complete verification.\n\n"
+            "Regards,\nPump Connector Automation Team"
+        ),
+        recipient_list=[user.email],
+    )
     return user
 
 
@@ -114,18 +178,16 @@ def send_password_reset(*, email):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     try:
-        send_mail(
-            "Reset your Smart Pump Control password",
-            (
+        send_transactional_email(
+            subject="Reset your Smart Pump Control password",
+            message=(
                 "Use this uid and token with POST "
                 f"/api/v1/accounts/password/reset/confirm/: uid={uid}, token={token}"
             ),
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=True,
+            recipient_list=[user.email],
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.error(f"Failed to send password reset email to {email}: {exc}")
 
 
 def send_sign_in_token_email(*, email):
@@ -142,16 +204,11 @@ def send_sign_in_token_email(*, email):
         f"Enter this 6-digit code in the app to verify your sign-in.\n\n"
         f"Regards,\nPump Connector Automation Team"
     )
-    try:
-        send_mail(
-            subject,
-            body,
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=True,
-        )
-    except Exception:
-        pass
+    send_transactional_email(
+        subject=subject,
+        message=body,
+        recipient_list=[user.email],
+    )
     return user
 
 

@@ -1,10 +1,13 @@
+from unittest.mock import patch
 from django.core import signing
 from django.core import mail
 from django.test import override_settings
+from rest_framework.exceptions import ValidationError
 from rest_framework.test import APITestCase
 
 from accounts.models import User
 from accounts.services import EMAIL_VERIFICATION_SALT
+from organizations.models import Organization, Membership
 
 
 @override_settings(
@@ -28,12 +31,24 @@ class AccountApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, 201)
         user = User.objects.get(email="person@example.com")
-        self.assertTrue(user.email_verified)
+        self.assertFalse(user.email_verified)
         self.assertNotEqual(user.password, "M0tor-control!Strong-Password-8821")
         self.assertTrue(user.check_password("M0tor-control!Strong-Password-8821"))
         self.assertTrue(hasattr(user, "profile"))
         self.assertEqual(len(mail.outbox), 1)
 
+        # Login fails before email OTP verification
+        unverified_login = self.client.post(
+            "/api/v1/accounts/login/",
+            {
+                "email": user.email,
+                "password": "M0tor-control!Strong-Password-8821",
+            },
+            format="json",
+        )
+        self.assertEqual(unverified_login.status_code, 401)
+
+        # OTP Verification
         token = user.profile.verification_otp
         verify = self.client.post(
             "/api/v1/accounts/email/verify/", {"token": token}, format="json"
@@ -42,6 +57,7 @@ class AccountApiTests(APITestCase):
         user.refresh_from_db()
         self.assertTrue(user.email_verified)
 
+        # Login succeeds after verification
         login = self.client.post(
             "/api/v1/accounts/login/",
             {
@@ -59,6 +75,58 @@ class AccountApiTests(APITestCase):
         self.assertEqual(refresh.status_code, 200)
         self.assertIn("access", refresh.data)
         self.assertIn("refresh", refresh.data)
+
+    def test_registration_organization_created(self):
+        response = self.client.post(
+            "/api/v1/accounts/register/",
+            {
+                "email": "orguser@example.com",
+                "password": "M0tor-control!Strong-Password-8821",
+                "first_name": "OrgOwner",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        user = User.objects.get(email="orguser@example.com")
+        membership = Membership.objects.filter(user=user).first()
+        self.assertIsNotNone(membership)
+        self.assertEqual(membership.role, Membership.Role.OWNER)
+        self.assertIn("OrgOwner", membership.organization.name)
+
+    def test_registration_email_delivery_failure_rolls_back_transaction(self):
+        with patch(
+            "accounts.services.send_transactional_email",
+            side_effect=ValidationError({"email": ["Failed to send email due to network timeout."]}),
+        ):
+            response = self.client.post(
+                "/api/v1/accounts/register/",
+                {
+                    "email": "faildelivery@example.com",
+                    "password": "M0tor-control!Strong-Password-8821",
+                    "first_name": "FailTest",
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, 400)
+            self.assertIn("email", response.data)
+            self.assertFalse(User.objects.filter(email="faildelivery@example.com").exists())
+            self.assertFalse(Organization.objects.filter(name="FailTest's Organization").exists())
+
+    def test_registration_duplicate_email(self):
+        User.objects.create_user(
+            email="existing@example.com",
+            password="M0tor-control!Strong-Password-8821",
+        )
+        response = self.client.post(
+            "/api/v1/accounts/register/",
+            {
+                "email": "existing@example.com",
+                "password": "M0tor-control!Strong-Password-8821",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("email", response.data)
 
     def test_email_verification_token_is_expiring_and_single_account_scoped(self):
         response = self.client.post(

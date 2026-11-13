@@ -1,4 +1,7 @@
+import logging
+
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
@@ -23,6 +26,9 @@ from config.throttles import (
 )
 from drf_spectacular.utils import extend_schema
 
+logger = logging.getLogger(__name__)
+
+
 class RegistrationView(generics.CreateAPIView):
     serializer_class = RegistrationSerializer
     permission_classes = [permissions.AllowAny]
@@ -43,14 +49,15 @@ class RegistrationView(generics.CreateAPIView):
                 },
                 status=status.HTTP_201_CREATED,
             )
-        except Exception as exc:
+        except ValidationError as exc:
             return Response(
-                {"detail": str(exc)},
+                exc.detail if hasattr(exc, "detail") else {"detail": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-            import traceback
+        except Exception as exc:
+            logger.error(f"Registration error: {exc}")
             return Response(
-                {"detail": f"Registration error: {str(exc)}", "trace": traceback.format_exc()},
+                {"detail": "Registration failed. Please check your information and try again."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
