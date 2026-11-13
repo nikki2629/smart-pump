@@ -47,6 +47,8 @@ class RegistrationSerializer(serializers.Serializer):
     def create(self, validated_data):
         phone = validated_data.pop("phone", "")
         phone_number = validated_data.pop("phone_number", "")
+        validated_data.pop("phone", None)
+        validated_data.pop("phone_number", None)
         resolved_phone = phone or phone_number
         return register_user(phone_number=resolved_phone, **validated_data)
 
