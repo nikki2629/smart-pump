@@ -60,13 +60,16 @@ def register_user(*, email, password, first_name="", last_name="", phone_number=
     )
 
     otp = generate_6digit_otp(user)
-    send_mail(
-        f"Your Pump Connector Verification Code: {otp}",
-        f"Hello {user.first_name or 'User'},\n\nYour 6-digit Pump Connector verification code is: {otp}\n\nEnter this 6-digit code in the app to complete verification.\n\nRegards,\nPump Connector Automation Team",
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            f"Your Pump Connector Verification Code: {otp}",
+            f"Hello {user.first_name or 'User'},\n\nYour 6-digit Pump Connector verification code is: {otp}\n\nEnter this 6-digit code in the app to complete verification.\n\nRegards,\nPump Connector Automation Team",
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
     return user
 
 
@@ -107,16 +110,19 @@ def send_password_reset(*, email):
         return
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
-    send_mail(
-        "Reset your Smart Pump Control password",
-        (
-            "Use this uid and token with POST "
-            f"/api/v1/accounts/password/reset/confirm/: uid={uid}, token={token}"
-        ),
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            "Reset your Smart Pump Control password",
+            (
+                "Use this uid and token with POST "
+                f"/api/v1/accounts/password/reset/confirm/: uid={uid}, token={token}"
+            ),
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 
 
 def send_sign_in_token_email(*, email):
@@ -133,13 +139,16 @@ def send_sign_in_token_email(*, email):
         f"Enter this 6-digit code in the app to verify your sign-in.\n\n"
         f"Regards,\nPump Connector Automation Team"
     )
-    send_mail(
-        subject,
-        body,
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
-    )
+    try:
+        send_mail(
+            subject,
+            body,
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
     return user
 
 
