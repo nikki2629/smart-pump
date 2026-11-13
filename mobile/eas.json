@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://smart-pump-backend.onrender.com/api/v1",
+        "EXPO_PUBLIC_ALLOW_INSECURE_HTTP": "true"
+      }
+    },
+    "production": {
+      "environment": "production",
+      "android": {
+        "buildType": "app-bundle"
+      }
+    }
+  }
+}
