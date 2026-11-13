@@ -44,20 +44,23 @@ def register_user(*, email, password, first_name="", last_name="", phone_number=
     if email_verified:
         user.email_verified_at = timezone.now()
     user.save(update_fields=("email_verified", "email_verified_at"))
-    UserProfile.objects.create(user=user, phone_number=phone_number)
+    UserProfile.objects.get_or_create(user=user, defaults={"phone_number": phone_number})
 
     from organizations.models import Organization, Membership
     org_name = f"{first_name or 'Default'}'s Organization"
     org = Organization.objects.create(name=org_name)
     Membership.objects.create(organization=org, user=user, role=Membership.Role.OWNER)
 
-    record_event(
-        actor=user,
-        organization=org,
-        action="account.registered",
-        object_type="user",
-        object_id=user.pk,
-    )
+    try:
+        record_event(
+            actor=user,
+            organization=org,
+            action="account.registered",
+            object_type="user",
+            object_id=user.pk,
+        )
+    except Exception:
+        pass
 
     otp = generate_6digit_otp(user)
     try:

@@ -29,18 +29,25 @@ class RegistrationView(generics.CreateAPIView):
     throttle_classes = [RegistrationThrottle]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {
-                "detail": "Registration successful.",
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            return Response(
+                {
+                    "detail": "Registration successful.",
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as exc:
+            import traceback
+            return Response(
+                {"detail": f"Registration error: {str(exc)}", "trace": traceback.format_exc()},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class EmailVerificationView(GenericAPIView):
