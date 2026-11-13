@@ -2,7 +2,7 @@ services:
   - type: web
     name: smart-pump-backend
     env: python
-    buildCommand: pip install -r requirements.txt && cd backend && python manage.py collectstatic --noinput && python manage.py migrate
+    buildCommand: pip3 install -r requirements.txt && cd backend && python3 manage.py collectstatic --noinput && python3 manage.py migrate
     startCommand: gunicorn --chdir backend config.wsgi:application
     envVars:
       - key: PYTHON_VERSION
